@@ -83,7 +83,7 @@ class Model(nn.Module):
 		self.model.fc = nn.Linear(in_features, new_out_features, bias=False)
 		self.fc = self.model.fc
 		
-		kaiming_normal_init(self.fc.weight, gain = 1.0)
+		kaiming_normal_init(self.fc.weight)
 		self.fc.weight.data[:out_features] = weight
 		self.n_classes += n
 
@@ -99,7 +99,14 @@ class Model(nn.Module):
 
 		return preds
 
-	def update(self, dataset, prev_model, new_class_idxs, args, fine_tuning=False):
+	def update(self, dataset, class_map, args):
+
+		self.compute_means = True
+
+		# Save a copy to compute distillation outputs
+		prev_model = copy.deepcopy(self)
+		prev_model.cuda()
+
 		classes = list(set(dataset.train_labels))
 		#print("Classes: ", classes)
 		print('Known: ', self.n_known)
@@ -112,7 +119,7 @@ class Model(nn.Module):
 			self.increment_classes(new_classes)
 			self.cuda()
 
-		loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+		loader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
 											   shuffle=True, num_workers=12)
 
 		print("Batch Size (for n_classes classes) : ", len(dataset))
@@ -122,10 +129,10 @@ class Model(nn.Module):
 			for epoch in range(self.num_epochs):
 				
 				# Modify learning rate
-				if (epoch+1) in lower_rate_epoch:
-					self.lr = self.lr * 1.0/lr_dec_factor
-					for param_group in optimizer.param_groups:
-						param_group['lr'] = self.lr
+				# if (epoch+1) in lower_rate_epoch:
+				# 	self.lr = self.lr * 1.0/lr_dec_factor
+				# 	for param_group in optimizer.param_groups:
+				# 		param_group['lr'] = self.lr
 
 				
 				for i, (indices, images, labels) in enumerate(loader):
@@ -137,11 +144,16 @@ class Model(nn.Module):
 
 					optimizer.zero_grad()
 					logits = self.forward(images)
-					dist_target = prev_model.forward(images)
-					logits_dist = logits[:,:-1]
-					dist_loss = MultiClassCrossEntropy(logits_dist, dist_target, 2)
 					cls_loss = nn.CrossEntropyLoss()(logits, labels)
-					loss = dist_loss+cls_loss
+					if self.n_classes//len(new_classes) > 1:
+						dist_target = prev_model.forward(images)
+						logits_dist = logits[:,:-1]
+						dist_loss = MultiClassCrossEntropy(logits_dist, dist_target, 2)
+						loss = dist_loss+cls_loss
+					else:
+						loss = cls_loss
+
+
 
 
 					loss.backward()
@@ -149,6 +161,12 @@ class Model(nn.Module):
 
 					if (i+1) % 1 == 0:
 						tqdm.write('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-							   %(epoch+1, args.num_epoch, i+1, np.ceil(len(dataset)/batch_size), loss.data))
+							   %(epoch+1, self.num_epochs, i+1, np.ceil(len(dataset)/self.batch_size), loss.data))
 
 				pbar.update(1)
+
+
+
+
+
+

@@ -25,12 +25,12 @@ transform = None
 parser = argparse.ArgumentParser(description='Continuum learning')
 parser.add_argument('--outfile', default='temp_0.1.csv', type=str, help='Output file name')
 parser.add_argument('--matr', default='results/acc_matr.npz', help='Accuracy matrix file name')
-parser.add_argument('--num_classes', default=10, help='Number of new classes introduced each time', type=int)
+parser.add_argument('--num_classes', default=2, help='Number of new classes introduced each time', type=int)
 parser.add_argument('--init_lr', default=0.1, type=float, help='Init learning rate')
 
 parser.add_argument('--num_epochs', default=40, type=int, help='Number of epochs')
 
-parser.add_argument('--batch_size', default=128, type=int, help='Mini batch size')
+parser.add_argument('--batch_size', default=64, type=int, help='Mini batch size')
 args = parser.parse_args()
 
 num_classes = args.num_classes
@@ -108,7 +108,7 @@ with open(args.outfile, 'w') as file:
 												   shuffle=False, num_workers=12)
 
 		# Update representation via BackProp
-		model.update(train_set, class_map, args, map_reverse, all_classes[s:s+num_classes])
+		model.update(train_set, class_map, args)
 		model.eval()
 
 		model.n_known = model.n_classes

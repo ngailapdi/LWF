@@ -21,6 +21,7 @@ class cifar10(CIFAR10):
 									   download=download)
 		
 		self.tensorTranform = transforms.ToTensor()
+		self.train = train
 		self.img_size = 224
 		if mean_image is not None:
 			mean_image = mean_image.transpose(1,2,0)
@@ -79,11 +80,11 @@ class cifar10(CIFAR10):
 			image = torch.FloatTensor(random_cropped)
 			target = self.train_labels[index]
 		else:
-			img, target = self.test_data[index], self.test_labels[index]
+			image, target = self.test_data[index], self.test_labels[index]
 
-		img = torch.FloatTensor(img)
+		image = torch.FloatTensor(image)
 		
-		return index, img, target
+		return index, image, target
 
 	def __len__(self):
 		if self.train:
