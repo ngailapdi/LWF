@@ -119,7 +119,7 @@ with open(args.outfile, 'w') as file:
 		correct = 0.0
 		for indices, images, labels in train_loader:
 			images = Variable(images).cuda()
-			preds = model.classify(images, None, args)
+			preds = model.classify(images)
 			preds = [map_reverse[pred] for pred in preds.cpu().numpy()]
 			total += labels.size(0)
 			correct += (preds == labels.numpy()).sum()
@@ -132,7 +132,7 @@ with open(args.outfile, 'w') as file:
 		correct = 0.0
 		for indices, images, labels in test_loader:
 			images = Variable(images).cuda()
-			preds = model.classify(images, None, args)
+			preds = model.classify(images)
 			preds = [map_reverse[pred] for pred in preds.cpu().numpy()]
 			total += labels.size(0)
 			correct += (preds == labels.numpy()).sum()
@@ -157,7 +157,7 @@ with open(args.outfile, 'w') as file:
 			correct = 0.0
 			for indices, images, labels in test_loader:
 				images = Variable(images).cuda()
-				preds = model.classify(images, None, args)
+				preds = model.classify(images)
 				preds = [map_reverse[pred] for pred in preds.cpu().numpy()]
 				total += labels.size(0)
 				correct += (preds == labels.numpy()).sum()
@@ -167,4 +167,4 @@ with open(args.outfile, 'w') as file:
 
 		model.train()
 		githash = subprocess.check_output(['git', 'describe', '--always'])
-		np.savez(args.matr, acc_matr=acc_matr, hyper_params = model.fetch_hyper_params(args), githash=githash)
+		np.savez(args.matr, acc_matr=acc_matr, hyper_params = args, githash=githash)

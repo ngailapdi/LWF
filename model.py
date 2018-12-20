@@ -18,6 +18,8 @@ def MultiClassCrossEntropy(logits, labels, T):
 	labels = Variable(labels.data, requires_grad=False).cuda()
 	outputs = torch.log_softmax(logits/T, dim=1)   # compute the log of softmax values
 	labels = torch.softmax(labels/T, dim=1)
+	# print('outputs: ', outputs)
+	# print('labels: ', labels.shape)
 	outputs = torch.sum(outputs * labels, dim=1, keepdim=False)
 	outputs = -torch.mean(outputs, dim=0, keepdim=False)
 	# print('OUT: ', outputs)
@@ -71,6 +73,7 @@ class Model(nn.Module):
 	def increment_classes(self, new_classes):
 		"""Add n classes in the final fc layer"""
 		n = len(new_classes)
+		print('new classes: ', n)
 		in_features = self.fc.in_features
 		out_features = self.fc.out_features
 		weight = self.fc.weight.data
@@ -79,7 +82,7 @@ class Model(nn.Module):
 			new_out_features = n
 		else:
 			new_out_features = out_features + n
-
+		print('new out features: ', new_out_features)
 		self.model.fc = nn.Linear(in_features, new_out_features, bias=False)
 		self.fc = self.model.fc
 		
@@ -95,7 +98,7 @@ class Model(nn.Module):
 		Returns:
 			preds: Tensor of size (batch_size,)
 		"""
-		_, preds = torch.max(torch.softmax(self.forward(image), dim=1), dim=1, keepdim=False)
+		_, preds = torch.max(torch.softmax(self.forward(images), dim=1), dim=1, keepdim=False)
 
 		return preds
 
@@ -147,7 +150,7 @@ class Model(nn.Module):
 					cls_loss = nn.CrossEntropyLoss()(logits, labels)
 					if self.n_classes//len(new_classes) > 1:
 						dist_target = prev_model.forward(images)
-						logits_dist = logits[:,:-1]
+						logits_dist = logits[:,:-(self.n_classes-self.n_known)]
 						dist_loss = MultiClassCrossEntropy(logits_dist, dist_target, 2)
 						loss = dist_loss+cls_loss
 					else:
